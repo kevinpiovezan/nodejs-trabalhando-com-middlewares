@@ -10,19 +10,58 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const {username} = request.headers;
+  for(let i = 0; i < users.length; i++) {
+    if(users[i].username === username) {
+      request.user = users[i];
+      next();
+    }
+  }
+  return response.status(404).json({error: 'User not found'});
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const {user} = request;
+  if(user.todos.length < 10) {
+    next();
+  }
+  if(user.pro) {
+    next();
+  }
+  return response.status(403).json({error: "Free account limit reached"})
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const {username} = request.headers;
+  const {id} = request.params;
+  if(!validate(id)) {
+    return response.status(400).json({error:'Invalid UUID'})
+  };
+  function todo(todos) {
+    return todos.id === id;
+  }
+  for(let i = 0; i < users.length; i++) {
+    if(users[i].username === username) {
+      if(!users[i].todos.find(todo)) {
+        return response.status(404).json({error:'To do not found'})
+      }
+      request.todo = users[i].todos.find(todo);
+      request.user = users[i];
+      next();
+    }
+  }
+  return response.status(404).json({error:'To do or User not found'})
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const {id} = request.params;
+  for(let i = 0; i < users.length; i++) {
+    if(users[i].id === id) {
+      request.user = users[i];
+      next();
+    }
+  }
+  return response.status(404).json({error:'User not found'})
 }
 
 app.post('/users', (request, response) => {
@@ -82,7 +121,6 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
     done: false,
     created_at: new Date()
   };
-
   user.todos.push(newTodo);
 
   return response.status(201).json(newTodo);
